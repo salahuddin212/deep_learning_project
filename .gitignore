@@ -1,0 +1,16 @@
+# Datasets
+1GB_dataset/
+1GB_dataset.zip
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Temporary ELA files
+temp_ela_*
+
+# IDE/OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
