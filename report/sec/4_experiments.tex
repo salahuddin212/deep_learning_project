@@ -1,0 +1,40 @@
+\section{Experiments and Results}
+\label{sec:experiments}
+
+To rigorously evaluate our ELA and EfficientNet-B0 pipeline, we established a strict experimental protocol. We partitioned our 10,000-image dataset into an 80/20 split, reserving 8,000 images exclusively for training and 2,000 unseen images for validation. All images were uniformly resized to $224 \times 224$ pixels to match the input expectations of the EfficientNet architecture. 
+
+\subsection{Training Setup and Hyperparameters}
+
+We trained our models on a local workstation equipped with an NVIDIA RTX 3060 Ti GPU, leveraging CUDA for hardware acceleration. Given the relatively small size of our dataset, we were extremely conscious of the risk of spatial overfitting. A model could easily memorize the exact position of watermarks or static noise patterns in the training data. To combat this, we aggressively employed data augmentation. During training, images were subjected to random horizontal flips and random rotations (up to 15 degrees). This forced the network to learn the fundamental texture of compression anomalies rather than relying on their spatial coordinates.
+
+The network was optimized using the Adam optimizer. To ensure smooth convergence and prevent the network from overshooting local minima during the final stages of training, we wrapped the optimizer in a Cosine Annealing learning rate scheduler. We ran our training loops for a maximum of 10 epochs, monitoring the validation loss at the end of each epoch to save the best-performing model weights.
+
+\subsection{Baseline Evaluation: The Failure of Frozen Weights}
+
+As alluded to in our Methodology, our first set of experiments served as a baseline to highlight the difficulty of the ELA domain shift. We trained a model where the EfficientNet-B0 feature extractor was completely frozen. 
+
+The results of this baseline run were incredibly poor. The model struggled to converge, and testing on the validation set yielded an F1-score of roughly 58.37\%. Given that our dataset was perfectly balanced, an F1-score of 58\% is only marginally better than a random coin toss. The frozen ImageNet filters simply could not extract meaningful patterns from the high-frequency ELA noise grids. This baseline definitively proved that standard transfer learning protocols are insufficient when migrating from natural RGB imagery to forensic representations.
+
+\subsection{Final Results: Full Fine-Tuning}
+
+Following the failure of the frozen baseline, we executed our primary experimental strategy: full network fine-tuning utilizing our proposed differential learning rates. The impact of unfreezing the lower-level convolutional layers was immediate and dramatic. The model exhibited rapid convergence, demonstrating a steep decline in training loss within the first three epochs.
+
+By the 9th epoch, the network hit its peak performance on the validation set. The final, optimized model weights (`best_model.pth`) were saved, and the corresponding metrics are detailed in Table \ref{tab:results}.
+
+\begin{table}[h]
+\centering
+\caption{Final Validation Metrics (Epoch 9)}
+\label{tab:results}
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Metric} & \textbf{Score (\%)} \\ \midrule
+Accuracy & 86.40 \\
+Precision & 88.00 \\
+Recall & 84.30 \\
+F1-Score & 86.11 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+The metrics tell a compelling story about the efficacy of our pipeline. Achieving an overall accuracy of 86.40\% is highly significant, confirming that compression artifacts alone---stripped entirely of semantic visual context---are highly discriminatory features for exposing digital forgery.
+
+Furthermore, we carefully analyzed the precision and recall scores. In the context of deepfake detection, a high false-positive rate is severely detrimental; continually flagging authentic media as fake erodes user trust in the detection system. Our model achieved a notably high precision score of 88.00\%. This indicates a strong resistance to false positives, meaning that when our system flags an image as a deepfake, there is a very high probability that it has genuinely been manipulated. The slightly lower recall score of 84.30\% suggests that the model occasionally misses highly sophisticated fakes where the generator's compression matching is exceptionally good, but the overall F1-score of 86.11\% demonstrates an excellent balance of reliability and sensitivity.

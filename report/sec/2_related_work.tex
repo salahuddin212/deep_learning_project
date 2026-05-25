@@ -1,0 +1,24 @@
+\section{Related Work}
+\label{sec:related}
+
+To fully appreciate our approach to deepfake detection, it is important to contextualize it within the broader history of digital forensics and the recent shift towards deep learning. The field has evolved dramatically from manual inspection techniques to fully automated, data-driven pipelines.
+
+\subsection{Traditional Digital Forensics}
+
+Long before the advent of Generative Adversarial Networks (GANs) and diffusion models, digital manipulation was largely a manual process performed using image editing software. Early forensic analysts relied heavily on extracting and analyzing EXIF metadata, which could easily reveal if an image had passed through a program like Adobe Photoshop. However, metadata is notoriously fragile; it can be effortlessly stripped or modified by malicious actors, rendering it an unreliable metric for absolute verification.
+
+As a result, the community shifted its focus towards analyzing the visual content itself. Researchers developed techniques to detect physical and geometrical inconsistencies. For example, analyzing the direction of light sources and cast shadows within an image could reveal if a subject had been spliced into a scene from a different environment. Similarly, examining the reflection in a person's eyes could expose an unnatural studio setup. While these methods were mathematically elegant and physically grounded, they required significant manual intervention from expert analysts and were highly sensitive to low-resolution imagery.
+
+\subsection{Error Level Analysis}
+
+The introduction of Error Level Analysis (ELA) by Krawtz \cite{ela2012} marked a significant turning point in the forensics landscape. Instead of relying on metadata or high-level semantics, ELA provided a programmatic, pixel-level method for detecting tampering. The underlying theory of ELA is based on the mechanics of the JPEG compression algorithm. The JPEG format relies on an $8 \times 8$ block discrete cosine transform (DCT) that introduces lossy artifacts. When an image is saved, these artifacts settle at a specific "error level."
+
+If a portion of that image is later altered---perhaps by splicing in a face from a completely different, uncompressed source---and the resulting composite is saved again, the original background undergoes its second (or third) compression pass, while the newly inserted region experiences its first. ELA visualizes this discrepancy by re-saving the composite image at a known quality level (e.g., 90\%) and computing the absolute pixel difference between the composite and the re-saved version. The result is an image where areas of identical compression history appear uniformly dark, while spliced or manipulated regions "pop" with high-frequency, brightly colored noise. Our work builds directly upon this foundational principle, taking the abstract output of ELA and feeding it into modern neural architectures.
+
+\subsection{Deep Learning for Forensics}
+
+With the explosion of deep learning in computer vision, the forensic community rapidly pivoted towards automated feature extraction. The release of the FaceForensics++ dataset \cite{faceforensics} served as a massive catalyst for this shift. FaceForensics++ provided researchers with tens of thousands of manipulated videos across various generation techniques (such as Deepfakes, Face2Face, and FaceSwap), establishing a much-needed standardized benchmark.
+
+The initial wave of deep learning solutions achieved remarkable results by training massive CNNs (like ResNet or Xception) directly on the raw RGB frames from datasets like FaceForensics++. These models became incredibly adept at spotting the semantic flaws of early generators---blurry teeth, unblinking eyes, and unnatural skin textures. However, this arms race heavily favored the generators. As generative AI solved these semantic flaws, RGB-based detectors began to struggle with generalizability.
+
+More recently, researchers have started exploring the frequency domain, feeding Discrete Fourier Transforms or DCT coefficients into networks to detect deepfakes. Our approach shares a philosophical similarity with these frequency-based methods, but we specifically isolate the JPEG compression grid via ELA. By marrying the traditional, targeted forensic precision of Error Level Analysis with the robust feature-extraction capabilities of a modern, parameter-efficient CNN architecture \cite{efficientnet}, we aim to create a detector that relies on the digital physics of the image format rather than its transient visual semantics.
