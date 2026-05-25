@@ -1,0 +1,104 @@
+\documentclass[25pt, a0paper, portrait]{tikzposter}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\title{Detecting Deepfakes Using Error Level Analysis and Transfer Learning}
+\author{Your Name}
+\institute{Your University}
+
+\usetheme{Board}
+
+\begin{document}
+
+\maketitle
+
+\begin{columns}
+
+\column{0.5}
+
+\block{Abstract}{
+Deepfake technology has advanced to the point where visual inconsistencies are difficult to detect in the RGB domain. This project explores the use of Error Level Analysis (ELA) to expose digital manipulations through compression artifacts. By processing 10,000 frames from the FaceForensics++ dataset into ELA heatmaps and fine-tuning an EfficientNet-B0 architecture, we demonstrate that compression signatures provide a robust alternative for deepfake detection, achieving 86.40\% accuracy.
+}
+
+\block{Introduction}{
+\begin{itemize}
+    \item \textbf{The Problem:} Generative AI creates hyper-realistic manipulated media. Traditional RGB-based detection methods are computationally heavy and easily fooled.
+    \item \textbf{The Concept:} When an image is spliced or altered, the new region typically has a different JPEG compression history than the background.
+    \item \textbf{Our Approach:} Extract ELA heatmaps to visualize these compression inconsistencies, then use transfer learning to classify the noise patterns.
+\end{itemize}
+}
+
+\block{Methodology}{
+\textbf{1. Data Preprocessing (ELA):}
+\begin{itemize}
+    \item Dataset: 10,000 frames (5k real, 5k fake) from FaceForensics++.
+    \item Process: Re-save the original image at 90\% JPEG quality. Compute the absolute difference between the original and the re-saved image. Scale brightness to maximize contrast.
+\end{itemize}
+
+\vspace{1cm}
+\textbf{2. Network Architecture (EfficientNet-B0):}
+\begin{itemize}
+    \item Pre-trained on ImageNet.
+    \item Base layers unfrozen to allow adaptation to ELA high-frequency noise.
+    \item Custom linear classification head for binary (Real vs. Fake) output.
+\end{itemize}
+
+\vspace{1cm}
+\textbf{3. Training Strategy:}
+\begin{itemize}
+    \item Differential Learning Rates: $5 \times 10^{-5}$ for base layers, $1 \times 10^{-3}$ for classifier.
+    \item Optimizer: Adam with Cosine Annealing scheduler.
+    \item Augmentation: Random rotations and horizontal flips to prevent spatial overfitting.
+\end{itemize}
+}
+
+\column{0.5}
+
+\block{Experiments and Results}{
+The model was trained for 10 epochs on an NVIDIA RTX 3060 Ti GPU using an 80/20 train/validation split.
+
+\vspace{1cm}
+\begin{center}
+\textbf{Table 1: Final Validation Metrics}
+\vspace{0.5cm}\\
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Metric} & \textbf{Score (\%)} \\ \midrule
+Accuracy & 86.40 \\
+Precision & 88.00 \\
+Recall & 84.30 \\
+F1-Score & 86.11 \\ \bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{1cm}
+\textbf{Key Findings:}
+\begin{itemize}
+    \item \textbf{Domain Shift:} A frozen EfficientNet base failed (58\% F1-score) because ImageNet features don't map to ELA noise.
+    \item \textbf{Fine-Tuning Success:} Unfreezing the base network was critical, allowing the lower-level filters to adapt to compression grids.
+    \item \textbf{High Precision:} An 88\% precision indicates a strong resistance to false positives.
+\end{itemize}
+}
+
+\block{Conclusion}{
+\begin{itemize}
+    \item ELA heatmaps provide a highly distinct fingerprint for manipulated media that neural networks can easily learn.
+    \item Efficient transfer learning via full-network fine-tuning with differential learning rates is required when shifting from natural imagery to abstract noise representations.
+    \item Our pipeline provides a lightweight, highly accurate (86.40\%) baseline for deepfake detection without needing heavy spatiotemporal RGB processing.
+\end{itemize}
+}
+
+\block{References}{
+\begin{enumerate}
+    \item N. Krawtz. \textit{Error level analysis}. Hacker Factor, 2007.
+    \item A. Rossler et al. \textit{FaceForensics++: Learning to Detect Manipulated Facial Images}. ICCV, 2019.
+    \item M. Tan, Q. Le. \textit{EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks}. ICML, 2019.
+\end{enumerate}
+}
+
+\end{columns}
+
+\end{document}

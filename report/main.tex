@@ -1,0 +1,86 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+% Simple CVPR-like layout
+\usepackage[margin=1in]{geometry}
+\setlength{\columnsep}{0.25in}
+
+\title{\Large \bf Detecting Deepfakes Using Error Level Analysis and Transfer Learning}
+
+\author{
+Your Name\\
+Your University\\
+{\tt\small your.email@university.edu}
+}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+As generative AI continues to advance, the proliferation of deepfake imagery poses significant challenges to digital media authenticity. Traditional detection methods often rely on deep neural networks to identify complex spatial and semantic inconsistencies in RGB space. These methods can be computationally expensive and are increasingly bypassed by advanced generators. This project explores an alternative approach focusing on digital manipulation through compression artifacts. We employ Error Level Analysis (ELA) to highlight regions of an image that have undergone different compression rates—a strong indicator of splicing or manipulation. We process a 10,000-frame subset of the FaceForensics++ dataset to generate ELA heatmaps. Using transfer learning and a fine-tuned EfficientNet-B0 architecture, we demonstrate that compression artifact patterns serve as robust discriminatory features. Our optimized model achieves a validation accuracy of 86.40\% and an F1-score of 86.11\%, confirming the efficacy of ELA-based deep learning for deepfake detection.
+\end{abstract}
+
+\section{Introduction}
+The rapid democratization of generative artificial intelligence has made it trivial to create highly realistic manipulated media, commonly known as deepfakes. While these technologies have legitimate creative applications, their potential for misuse in spreading misinformation, fraud, and defamation is a critical societal concern \cite{faceforensics}. Consequently, developing robust detection mechanisms is imperative.
+
+Most contemporary detection pipelines feed raw RGB pixels directly into massive Convolutional Neural Networks (CNNs) or Vision Transformers (ViTs). However, as generative models improve their visual blending, semantic visual cues become harder to detect. Instead of analyzing what the image portrays, we analyze the digital fingerprint of how the image was saved. When an image is manipulated, the inserted region often possesses a different JPEG compression history than the background. Error Level Analysis (ELA) makes these compression inconsistencies visible \cite{ela2012}. In this paper, we propose a lightweight detection pipeline that leverages ELA heatmaps coupled with transfer learning on an EfficientNet-B0 \cite{efficientnet} backbone.
+
+\section{Related Work}
+Early forgery detection relied on manual inspection of EXIF data or lighting inconsistencies. The introduction of ELA by Krawtz \cite{ela2012} provided a programmatic way to detect tampering by re-saving images at known quality levels and measuring pixel deviation. With the advent of deep learning, researchers shifted towards automated feature extraction. The FaceForensics++ dataset \cite{faceforensics} became a standard benchmark, providing thousands of manipulated videos using various techniques (e.g., Deepfakes, Face2Face). Our work bridges these domains by feeding ELA representations—rather than raw RGB frames—into a modern CNN architecture optimized for efficiency \cite{efficientnet}.
+
+\section{Methodology}
+
+\subsection{Data Preprocessing and ELA}
+We utilize a subset of the FaceForensics++ dataset consisting of 10,000 static frames (5,000 pristine, 5,000 manipulated). For each image, we apply Error Level Analysis. The original image is re-saved at a known JPEG quality (90\%). We compute the absolute pixel-wise difference between the original and the re-compressed image. To ensure the compression noise is a dominant feature for the network, we scale the difference to maximize brightness. This process transforms natural images into noise-like heatmaps where manipulated regions exhibit stark contrast against pristine backgrounds.
+
+\subsection{Network Architecture}
+We adopt EfficientNet-B0 \cite{efficientnet} as our core feature extractor due to its excellent balance of parameter efficiency and accuracy. Because EfficientNet is pre-trained on ImageNet—a dataset of natural images—its lower-level filters are biased towards natural edges and textures. ELA heatmaps, conversely, resemble high-frequency noise. Therefore, a standard transfer learning approach (freezing the base) yields suboptimal results. We implement full network fine-tuning:
+\begin{itemize}
+    \item We replace the classification head with a single linear node for binary classification.
+    \item We unfreeze the entire base network.
+    \item We apply differential learning rates, updating the pre-trained feature extractor slowly ($5 \times 10^{-5}$) to adapt its filters to compression noise without catastrophic forgetting, while training the new classification head at a standard rate ($1 \times 10^{-3}$).
+\end{itemize}
+
+\subsection{Training Setup}
+Images are resized to $224 \times 224$. To prevent spatial overfitting, we apply data augmentation including random horizontal flips and random rotations (up to 15 degrees). The model is optimized using the Adam optimizer and Binary Cross-Entropy with Logits Loss. A Cosine Annealing learning rate scheduler is employed to ensure smooth convergence over 10 epochs on an NVIDIA RTX 3060 Ti GPU.
+
+\section{Experiments and Results}
+The dataset is split into 8,000 training images and 2,000 validation images. 
+
+\subsection{Baseline vs. Fine-Tuned Performance}
+Initial experiments utilizing a frozen feature extractor yielded a validation F1-score of approximately 58.37\%, only marginally better than random guessing. This confirmed the severe domain shift between ImageNet natural imagery and ELA noise patterns.
+
+Implementing our full fine-tuning strategy with data augmentation and scheduling resulted in rapid convergence. By the 9th epoch, the model achieved its peak performance. The final validation metrics are summarized in Table \ref{tab:results}.
+
+\begin{table}[h]
+\centering
+\caption{Final Validation Metrics}
+\label{tab:results}
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Metric} & \textbf{Score (\%)} \\ \midrule
+Accuracy & 86.40 \\
+Precision & 88.00 \\
+Recall & 84.30 \\
+F1-Score & 86.11 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+The strong precision (88.00\%) indicates a low false-positive rate, meaning pristine images are rarely flagged as deepfakes. The overall accuracy of 86.40\% demonstrates that high-frequency compression artifacts alone are highly effective for uncovering digital manipulation.
+
+\section{Conclusion}
+We presented a highly efficient pipeline for deepfake detection utilizing Error Level Analysis and a fine-tuned EfficientNet-B0 model. By isolating compression inconsistencies rather than semantic visual flaws, our model successfully differentiates real from fake media with 86.40\% accuracy on the FaceForensics++ dataset. Future work could explore feeding both RGB and ELA streams into a dual-branch architecture to capture both spatial artifacts and compression anomalies simultaneously.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
