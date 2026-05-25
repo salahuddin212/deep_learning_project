@@ -1,15 +1,75 @@
-\documentclass[25pt, a0paper, portrait]{tikzposter}
+\documentclass[25pt, a0paper, landscape]{tikzposter}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,fit,calc}
 
-\title{Detecting Deepfakes Using Error Level Analysis and Transfer Learning}
-\author{Your Name}
-\institute{Your University}
+% Use Helvetica for a modern, clean, sans-serif poster layout
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\graphicspath{{poster/}{./}}
 
-\usetheme{Board}
+% Professional CVPR-like Color Theme
+\definecolor{cvprblue}{HTML}{20538D}
+\definecolor{cvprlightblue}{HTML}{E8F0F8}
+\definecolor{cvprdark}{HTML}{222222}
+
+\definecolorstyle{CVPRStyle}{
+    \colorlet{colorOne}{cvprblue}
+    \colorlet{colorTwo}{cvprlightblue}
+    \colorlet{colorThree}{cvprdark}
+}{
+    \colorlet{backgroundcolor}{white}
+    \colorlet{framecolor}{white}
+    \colorlet{titlebgcolor}{colorOne}
+    \colorlet{titlefgcolor}{white}
+    \colorlet{blocktitlebgcolor}{colorOne}
+    \colorlet{blocktitlefgcolor}{white}
+    \colorlet{blockbodybgcolor}{colorTwo}
+    \colorlet{blockbodyfgcolor}{black}
+}
+
+\definetitlestyle{CVPRTitle}{
+    width=\paperwidth, roundedcorners=0, linewidth=0pt, innersep=1.5cm,
+    titletotopverticalspace=0mm, titletoblockverticalspace=20mm
+}{
+    \begin{scope}[line width=0pt]
+        \draw[color=blocktitlebgcolor, fill=titlebgcolor]
+        (\titleposleft,\titleposbottom) rectangle (\titleposright,\titlepostop);
+        % Insert BAU Logo inside a clean white card with rounded corners and border on the left of the title
+        \node[anchor=west, xshift=4cm, fill=white, rounded corners=15, inner sep=15pt, draw=cvprlightblue, line width=3pt] 
+        at (\titleposleft, {0.5*(\titleposbottom+\titlepostop)}) 
+        {\includegraphics[height=5.5cm]{bau_logo.png}};
+    \end{scope}
+}
+
+\defineblockstyle{CVPRBlock}{
+    titlewidthscale=1, bodywidthscale=1, titleleft,
+    titleoffsetx=0pt, titleoffsety=0pt, bodyoffsetx=0pt, bodyoffsety=0pt,
+    bodyverticalshift=0pt, roundedcorners=5, linewidth=2pt,
+    titleinnersep=10pt, bodyinnersep=20pt
+}{
+    \begin{scope}[line width=\blocklinewidth, rounded corners=\blockroundedcorners]
+        \ifBlockHasTitle
+            \draw[color=blocktitlebgcolor, fill=blocktitlebgcolor] (blocktitle.south west) rectangle (blocktitle.north east);
+            \draw[color=blocktitlebgcolor, fill=blockbodybgcolor] (blockbody.south west) rectangle (blockbody.north east);
+        \else
+            \draw[color=blocktitlebgcolor, fill=blockbodybgcolor] (blockbody.south west) rectangle (blockbody.north east);
+        \fi
+    \end{scope}
+}
+
+\usecolorstyle{CVPRStyle}
+\usetitlestyle{CVPRTitle}
+\useblockstyle{CVPRBlock}
+
+\title{\textbf{Detecting Deepfakes Using Error Level Analysis and Transfer Learning}}
+\author{Selahaddin Bayassi (ID: 2354565)}
+\institute{Bahcesehir University \hspace{2cm} {\tt\Large selahaddin.bayassi@bahcesehir.edu.tr}}
 
 \begin{document}
 
@@ -17,88 +77,131 @@
 
 \begin{columns}
 
-\column{0.5}
+% ==========================================
+% COLUMN 1
+% ==========================================
+\column{0.32}
 
 \block{Abstract}{
-Deepfake technology has advanced to the point where visual inconsistencies are difficult to detect in the RGB domain. This project explores the use of Error Level Analysis (ELA) to expose digital manipulations through compression artifacts. By processing 10,000 frames from the FaceForensics++ dataset into ELA heatmaps and fine-tuning an EfficientNet-B0 architecture, we demonstrate that compression signatures provide a robust alternative for deepfake detection, achieving 86.40\% accuracy.
+As Generative AI grows in popularity, the effortless creation of hyper-realistic manipulated media ('deepfakes') presents a massive challenge to digital authenticity. Historically, researchers relied on massive neural networks to spot spatial inconsistencies directly within raw RGB images. 
+
+In this study, I explored a fundamentally different approach. Instead of analyzing visual semantics, I investigated the digital fingerprint left behind by image compression. I used \textbf{Error Level Analysis (ELA)} to reveal hidden compression artifacts. By processing 10,000 frames from FaceForensics++ into ELA heatmaps and fine-tuning an EfficientNet-B0 architecture with differential learning rates, my optimized model achieved a validation accuracy of \textbf{86.40\%} and an F1-score of \textbf{86.11\%}.
 }
 
 \block{Introduction}{
 \begin{itemize}
-    \item \textbf{The Problem:} Generative AI creates hyper-realistic manipulated media. Traditional RGB-based detection methods are computationally heavy and easily fooled.
-    \item \textbf{The Concept:} When an image is spliced or altered, the new region typically has a different JPEG compression history than the background.
-    \item \textbf{Our Approach:} Extract ELA heatmaps to visualize these compression inconsistencies, then use transfer learning to classify the noise patterns.
+    \item \textbf{The RGB Problem:} Most contemporary detection pipelines feed raw RGB pixels into massive CNNs or Vision Transformers. However, as generative models like diffusion models perfect their visual blending, semantic ``tells'' (like weird lighting) are vanishing.
+    \item \textbf{The Forensic Angle:} When an image is spliced, the newly inserted region rarely shares the same JPEG compression history as the original host image. This discrepancy acts as a latent smoking gun.
+    \item \textbf{My Approach:} I bridged classic digital forensics with deep learning. By feeding ELA heatmaps into a lightweight EfficientNet-B0 backbone, I forced the network to become an expert at identifying compression anomalies rather than easily-faked visual semantics.
 \end{itemize}
 }
 
-\block{Methodology}{
-\textbf{1. Data Preprocessing (ELA):}
-\begin{itemize}
-    \item Dataset: 10,000 frames (5k real, 5k fake) from FaceForensics++.
-    \item Process: Re-save the original image at 90\% JPEG quality. Compute the absolute difference between the original and the re-saved image. Scale brightness to maximize contrast.
-\end{itemize}
+\block{Error Level Analysis (ELA) Pipeline}{
+\vspace{1cm}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=2.5cm and 2cm,
+    box/.style={rectangle, draw=cvprblue, thick, fill=white, minimum width=6cm, minimum height=1.5cm, text centered, font=\Large\bfseries, rounded corners},
+    arrow/.style={->, thick, >=stealth', line width=1.5pt}
+]
+
+\node (img) [box] {Input Image ($I$)};
+\node (comp) [box, below right=1cm and 2cm of img] {JPEG Comp. ($I' = \mathcal{C}_{90}(I)$)};
+\node (diff) [box, below left=1cm and 2cm of comp] {Absolute Diff. ($D = |I - I'|$)};
+\node (scale) [box, below=1.5cm of diff] {Brightness Scaling (0-255)};
+\node (heatmap) [box, fill=cvprlightblue, below=1.5cm of scale] {ELA Heatmap};
+
+\draw [arrow] (img) -| (comp);
+\draw [arrow] (img) -- (diff);
+\draw [arrow] (comp) |- (diff);
+\draw [arrow] (diff) -- (scale);
+\draw [arrow] (scale) -- (heatmap);
+
+\end{tikzpicture}
+\end{center}
+\vspace{1cm}
+}
+
+% ==========================================
+% COLUMN 2
+% ==========================================
+\column{0.36}
+
+\block{Methodology \& Architecture}{
+\textbf{1. Data Curation}\\
+I relied on a carefully selected, perfectly balanced subset of the FaceForensics++ dataset (5,000 pristine, 5,000 manipulated deepfakes). I passed these frames through the ELA pipeline shown to the left to strip away natural visual content, leaving behind a stark heatmap of the underlying compression grid.
 
 \vspace{1cm}
-\textbf{2. Network Architecture (EfficientNet-B0):}
-\begin{itemize}
-    \item Pre-trained on ImageNet.
-    \item Base layers unfrozen to allow adaptation to ELA high-frequency noise.
-    \item Custom linear classification head for binary (Real vs. Fake) output.
-\end{itemize}
+\textbf{2. Network Selection: EfficientNet-B0}\\
+To ensure the pipeline remained lightweight for practical deployment, I chose the highly parameter-efficient EfficientNet-B0. I removed the original ImageNet head and built a custom top-level module featuring a global average pooling layer and a single linear node for binary (Real vs. Fake) classification using Binary Cross-Entropy.
 
 \vspace{1cm}
-\textbf{3. Training Strategy:}
+\textbf{3. The Domain Shift Challenge}\\
+My biggest hurdle was navigating the severe domain shift between standard photos and ELA heatmaps. A standard transfer learning approach (freezing the pre-trained base) completely failed because the ImageNet-trained filters were unequipped to understand high-frequency, grid-like ELA noise.
+}
+
+\block{Training Strategy}{
+To overcome the domain shift, I pivoted to full network fine-tuning paired with a \textbf{differential learning rate strategy}. I completely unfroze the base network but protected its generalized edge-detection skills using a very small learning rate, while training the new head aggressively:
+
+\vspace{0.5cm}
 \begin{itemize}
-    \item Differential Learning Rates: $5 \times 10^{-5}$ for base layers, $1 \times 10^{-3}$ for classifier.
-    \item Optimizer: Adam with Cosine Annealing scheduler.
-    \item Augmentation: Random rotations and horizontal flips to prevent spatial overfitting.
+    \item \textbf{Base Network $\alpha_{base}$:} $5 \times 10^{-5}$
+    \item \textbf{Classifier Head $\alpha_{head}$:} $1 \times 10^{-3}$
+    \item \textbf{Optimizer:} Adam with Cosine Annealing scheduler.
+    \item \textbf{Augmentation:} Random rotations (15$^\circ$) and horizontal flips to prevent spatial overfitting on the noise grids.
 \end{itemize}
 }
 
-\column{0.5}
+% ==========================================
+% COLUMN 3
+% ==========================================
+\column{0.32}
 
 \block{Experiments and Results}{
-The model was trained for 10 epochs on an NVIDIA RTX 3060 Ti GPU using an 80/20 train/validation split.
+I evaluated the models using an 80/20 train/validation split (8k training, 2k validation images) over 10 epochs.
 
 \vspace{1cm}
 \begin{center}
-\textbf{Table 1: Final Validation Metrics}
-\vspace{0.5cm}\\
-\begin{tabular}{@{}lc@{}}
-\toprule
-\textbf{Metric} & \textbf{Score (\%)} \\ \midrule
-Accuracy & 86.40 \\
-Precision & 88.00 \\
-Recall & 84.30 \\
-F1-Score & 86.11 \\ \bottomrule
-\end{tabular}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar=15pt,
+    bar width=2.2cm,
+    width=32cm,
+    height=18cm,
+    enlarge x limits=0.6,
+    legend style={at={(0.5,-0.15)}, anchor=north, legend columns=-1, font=\Large, draw=none, /tikz/every even column/.append style={column sep=1.5cm}},
+    ylabel={\textbf{Percentage (\%)}},
+    ylabel shift=1.8cm,
+    symbolic x coords={Frozen Baseline, Full Fine-Tuning},
+    xtick=data,
+    nodes near coords,
+    nodes near coords align={vertical},
+    ymin=0, ymax=100,
+    title={\textbf{Performance Comparison}},
+    every node near coord/.append style={font=\large\bfseries, color=black, /pgf/number format/.cd, fixed, fixed zerofill, precision=2},
+    tick label style={font=\Large}
+]
+\addplot[fill=gray!40, draw=black, thick] coordinates {(Frozen Baseline,58.37) (Full Fine-Tuning,86.11)};
+\addplot[fill=cvprblue, draw=black, thick] coordinates {(Frozen Baseline,59.10) (Full Fine-Tuning,86.40)};
+\legend{F1-Score, Accuracy}
+\end{axis}
+\end{tikzpicture}
 \end{center}
-
 \vspace{1cm}
-\textbf{Key Findings:}
+
+\textbf{Key Findings:}\\
 \begin{itemize}
-    \item \textbf{Domain Shift:} A frozen EfficientNet base failed (58\% F1-score) because ImageNet features don't map to ELA noise.
-    \item \textbf{Fine-Tuning Success:} Unfreezing the base network was critical, allowing the lower-level filters to adapt to compression grids.
-    \item \textbf{High Precision:} An 88\% precision indicates a strong resistance to false positives.
+    \item \textbf{Failure of Frozen Weights:} The baseline run yielded an F1-score of roughly 58.37\%, which is barely better than a random coin toss. Standard transfer learning falls short when migrating to forensic representations.
+    \item \textbf{Success of Fine-Tuning:} The impact of unfreezing the lower layers was immediate. The final model achieved \textbf{86.40\% Accuracy}.
+    \item \textbf{High Precision:} The model achieved a notably high precision score of \textbf{88.00\%}. This indicates a strong resistance to false positives, which is critical for maintaining trust in a detection system.
 \end{itemize}
 }
 
 \block{Conclusion}{
-\begin{itemize}
-    \item ELA heatmaps provide a highly distinct fingerprint for manipulated media that neural networks can easily learn.
-    \item Efficient transfer learning via full-network fine-tuning with differential learning rates is required when shifting from natural imagery to abstract noise representations.
-    \item Our pipeline provides a lightweight, highly accurate (86.40\%) baseline for deepfake detection without needing heavy spatiotemporal RGB processing.
-\end{itemize}
-}
+By moving away from the computationally expensive trend of massive RGB semantic analysis, I showed that examining the underlying digital physics of an image is an incredibly viable alternative. 
 
-\block{References}{
-\begin{enumerate}
-    \item N. Krawtz. \textit{Error level analysis}. Hacker Factor, 2007.
-    \item A. Rossler et al. \textit{FaceForensics++: Learning to Detect Manipulated Facial Images}. ICCV, 2019.
-    \item M. Tan, Q. Le. \textit{EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks}. ICML, 2019.
-\end{enumerate}
+Isolating JPEG compression inconsistencies through ELA forces neural networks to act as digital forensic analysts. While teaching a modern CNN to interpret abstract data required navigating severe domain shifts via differential learning rates, my final results validate the hypothesis: we can build highly accurate, lightweight detectors based purely on compression artifacts.
 }
 
 \end{columns}
-
 \end{document}
